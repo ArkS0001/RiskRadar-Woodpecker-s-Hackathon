@@ -11,6 +11,8 @@ predictions and actionable insights to emergency responders and affected communi
 Domain: Environmental monitoring, Emergency management, Public safety,
 Government agencies, Disaster relief organizations, Infrastructure management, Climate
 research, Insurance.
+
+
 ● Fraud Detection and Prevention System:
 Problem Statement: Organizations across various sectors face significant challenges in
 detecting and preventing fraudulent activities, leading to substantial financial losses and
