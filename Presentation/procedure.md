@@ -1,5 +1,8 @@
 Data Collection
 
+two types natural and technical
+and hotspot areas
+
     Historical Data: Collect historical data on past disasters (earthquakes, floods, hurricanes, wildfires, etc.). Sources include government agencies, meteorological departments, and research institutions.
     Real-time Data: Integrate real-time data feeds such as satellite imagery, weather reports, seismic data, social media feeds, and sensor networks.
 
