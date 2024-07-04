@@ -45,3 +45,6 @@ Here is a set of all unique disaster subtypes from the provided data:
 38. Tsunami
 39. Viral disease
 40. Water
+
+![WhatsApp Image 2024-07-05 at 1 46 55 AM](https://github.com/ArkS0001/Woodpecker-s-Hackathon/assets/113760964/0e8c2b47-76b6-492f-bf2d-c25b49cfc13f)
+
