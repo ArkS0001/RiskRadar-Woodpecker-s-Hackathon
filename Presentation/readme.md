@@ -2,6 +2,9 @@
 ![E8pZ](https://github.com/ArkS0001/Woodpecker-s-Hackathon/assets/113760964/9136a7b1-2cc6-408f-b822-8f9c72f34145)
 
 # Phase 2 is Response.md
+<img width="1000" alt="architecture" src="https://github.com/ArkS0001/Woodpecker-s-Hackathon/assets/113760964/78f9fd0c-1505-4c7c-bf0f-c0065e267231">
+
+![pasted image 0](https://github.com/ArkS0001/Woodpecker-s-Hackathon/assets/113760964/55485259-4543-4f11-a591-b676ebabd2c8)
 
 Here is a set of all unique disaster subtypes from the provided data:
 
