@@ -120,7 +120,7 @@ def preprocess_user_input(user_input, X_columns):
 
 # Train models on inbuilt data
 features = ['Magnitude', 'Total Deaths', 'No. Injured', 'No. Affected', 'No. Homeless', 'Disaster Group', 'Disaster Subgroup', 'Disaster Type']
-target_variable = 'Disaster Type'
+target_variable = 'Disaster Subtype'
 X, y = preprocess_data(data, target_variable, features)
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 results = train_and_evaluate_models(X_train, X_test, y_train, y_test)
@@ -130,7 +130,7 @@ st.session_state['X_columns'] = X.columns
 
 # Section 1: Disaster Prediction
 if section == "Disaster Prediction":
-    st.title("🌀 Disaster Prediction 🌀")
+    st.title("🌀 RiskRadar 🌀")
 
     if 'trained_models' in st.session_state:
         with st.container():
