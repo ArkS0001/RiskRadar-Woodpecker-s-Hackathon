@@ -8,8 +8,7 @@ Sure, here's a transcript for a 3-minute video presentation showcasing your disa
 
 [Slide: Technology Stack]
 "The core technologies used in this project include:
-
-    Machine Learning Models for accurate disaster predictions
+Machine Learning Models for accurate disaster predictions
     Streamlit for creating interactive web applications
     Twilio for sending real-time SMS alerts to users
     A real-time map API for displaying disaster locations visually."
