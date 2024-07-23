@@ -1,19 +1,21 @@
 import streamlit as st
 import pandas as pd
+import requests
+import folium
+from geopy.geocoders import Nominatim
+from streamlit_folium import folium_static
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, classification_report
 from twilio.rest import Client
-import folium
-from streamlit_folium import st_folium
 
 # Twilio credentials
-account_sid = 'AC84782d595383c0e22583352bf451a54c'
-auth_token = '60f6060dedcf1a6387fd64feeab88611'
-from_phone_number = '+14025881918'
-to_phone_numbers = ['+919696781896', '+916393868175', '+919794401041']
+account_sid = 'AC198f462ae92b3af5dc68e49bad1840e8'
+auth_token = 'db548f8f22126e01ecc5b4d3e67f505f'
+from_phone_number = '+12513255069 '
+to_phone_numbers = ['+919696781896', '+916393868175', '+917275011914']
 
 client = Client(account_sid, auth_token)
 
@@ -28,14 +30,56 @@ def send_notification(message_body, to_phone_number):
     except Exception as e:
         st.error(f"Failed to send notification: {e}")
 
+# Replace with your actual API key
+API_KEY = '898faf64800f441290495339242007'
+
+# Function to get weather data
+def get_weather_data(location):
+    url = f"http://api.weatherapi.com/v1/current.json?key={API_KEY}&q={location}"
+    response = requests.get(url)
+    return response.json()
+
+# Function to get latitude and longitude of a location
+def get_lat_lon(location):
+    geolocator = Nominatim(user_agent="weather_app")
+    location = geolocator.geocode(location)
+    return location.latitude, location.longitude
+
+# Function to create a map with weather data
+def create_weather_map(location, weather_data):
+    lat, lon = get_lat_lon(location)
+    map_ = folium.Map(location=[lat, lon], zoom_start=10,
+                    tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        attr='Map data © <a href="https://www.esri.com/en-us/home">Esri</a> contributors')
+    
+    weather_info = f"""
+    <b>Location:</b> {weather_data['location']['name']}, {weather_data['location']['country']}<br>
+    <b>Temperature:</b> {weather_data['current']['temp_c']}°C ({weather_data['current']['temp_f']}°F)<br>
+    <b>Condition:</b> {weather_data['current']['condition']['text']}<br>
+    <b>Wind:</b> {weather_data['current']['wind_kph']} kph ({weather_data['current']['wind_mph']} mph)<br>
+    <b>Humidity:</b> {weather_data['current']['humidity']}%<br>
+    <b>Pressure:</b> {weather_data['current']['pressure_mb']} mb ({weather_data['current']['pressure_in']} in)<br>
+    <b>Visibility:</b> {weather_data['current']['vis_km']} km ({weather_data['current']['vis_miles']} miles)<br>
+    <b>UV Index:</b> {weather_data['current']['uv']}<br>
+    <b>Feels Like:</b> {weather_data['current']['feelslike_c']}°C ({weather_data['current']['feelslike_f']}°F)
+    """
+    
+    folium.Marker(
+        [lat, lon],
+        popup=folium.Popup(weather_info, max_width=300),
+        tooltip=weather_data['location']['name']
+    ).add_to(map_)
+    
+    return map_
+
 # Set Streamlit page configuration
-st.set_page_config(layout="wide")
+st.set_page_config(page_title="Disaster Prediction and Weather App", layout="wide")
 
 # Sidebar content
 st.sidebar.title("Navigation")
 if 'section' not in st.session_state:
     st.session_state.section = "Disaster Prediction"
-section = st.sidebar.radio("Go to", ["Disaster Prediction", "Model Results"], index=0 if st.session_state.section == "Disaster Prediction" else 1)
+section = st.sidebar.radio("Go to", ["Disaster Prediction", "Model Results", "Weather Map"], index=0 if st.session_state.section == "Disaster Prediction" else 1)
 
 # Load dataset from file (replace 'disaster_data.csv' with your file path)
 dataset_path = 'disaster_data.csv'
@@ -76,7 +120,7 @@ def preprocess_user_input(user_input, X_columns):
 
 # Train models on inbuilt data
 features = ['Magnitude', 'Total Deaths', 'No. Injured', 'No. Affected', 'No. Homeless', 'Disaster Group', 'Disaster Subgroup', 'Disaster Type']
-target_variable = 'Disaster Type'
+target_variable = 'Disaster Subtype'
 X, y = preprocess_data(data, target_variable, features)
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 results = train_and_evaluate_models(X_train, X_test, y_train, y_test)
@@ -84,76 +128,52 @@ st.session_state['trained_models'] = {name: result['model'] for name, result in 
 st.session_state['features'] = features
 st.session_state['X_columns'] = X.columns
 
-# CSS for custom styling
-st.markdown("""
-    <style>
-        .main {
-            color: #333;
-        }
-        .stButton > button {
-            background-color: #4CAF50; 
-            color: white; 
-            border-radius: 12px; 
-            padding: 10px 20px; 
-            border: none;
-        }
-        .stNumberInput > div > div > input {
-            border: 2px solid #4CAF50;
-            border-radius: 8px;
-            padding: 10px;
-        }
-        .stSelectbox {
-            background-color: #f2f2f2;
-            border-radius: 8px;
-            padding: 10px;
-        }
-        .stTextInput > div > div > input {
-            border: 2px solid #4CAF50;
-            border-radius: 8px;
-            padding: 10px;
-        }
-    </style>
-    """, unsafe_allow_html=True)
-
 # Section 1: Disaster Prediction
 if section == "Disaster Prediction":
-    st.title("🌪️ Disaster Prediction 🌪️")
-    st.write("Please fill out the form below to predict the disaster type:")
+    st.title("🌀 RiskRadar 🌀")
 
-    # Use a single column layout
-    with st.container():
-        col1, col2 = st.columns([1, 2])
-        with col1:
-            magnitude = st.number_input("Magnitude", min_value=0.0, value=7.2)
-            total_deaths = st.number_input("Total Deaths", min_value=0, value=1500)
-            no_injured = st.number_input("No. Injured", min_value=0, value=3000)
-            no_affected = st.number_input("No. Affected", min_value=0, value=50000)
-            no_homeless = st.number_input("No. Homeless", min_value=0, value=10000)
+    if 'trained_models' in st.session_state:
+        with st.container():
+            st.markdown("## Enter Disaster Details")
+            
+            with st.form(key='disaster_prediction_form'):
+                col1, col2 = st.columns(2)
 
-        with col2:
-            disaster_group = st.selectbox("Disaster Group", options=['Natural', 'Technological'])
-            disaster_subgroup = st.selectbox("Disaster Subgroup", options=['Geophysical', 'Hydrological', 'Meteorological', 'Climatological', 'Biological', 'Extra-terrestrial'])
-            disaster_type = st.selectbox("Disaster Type", options=['Earthquake', 'Volcanic activity', 'Mass movement (dry)', 'Storm', 'Flood', 'Mass movement (wet)', 'Wildfire', 'Extreme temperature', 'Drought', 'Glacial lake outburst', 'Insect infestation', 'Epidemic', 'Animal accident', 'Impact', 'Space weather'])
+                with col1:
+                    location = st.text_input("Location", "New York")
+                    magnitude = st.slider("Magnitude", min_value=0.0, max_value=10.0, value=7.2, step=0.1)
+                    total_deaths = st.slider("Total Deaths", min_value=0, max_value=10000, value=1500)
+                    no_injured = st.slider("No. Injured", min_value=0, max_value=10000, value=3000)
+                    no_affected = st.slider("No. Affected", min_value=0, max_value=100000, value=50000)
+                    no_homeless = st.slider("No. Homeless", min_value=0, max_value=10000, value=10000)
 
-    user_input = {
-        'Magnitude': magnitude,
-        'Total Deaths': total_deaths,
-        'No. Injured': no_injured,
-        'No. Affected': no_affected,
-        'No. Homeless': no_homeless,
-        'Disaster Group': disaster_group,
-        'Disaster Subgroup': disaster_subgroup,
-        'Disaster Type': disaster_type,
-    }
+                with col2:
+                    disaster_group = st.selectbox("Disaster Group", options=['Natural', 'Technological'])
+                    disaster_subgroup = st.selectbox("Disaster Subgroup", options=['Geophysical', 'Hydrological', 'Meteorological', 'Climatological', 'Biological', 'Extra-terrestrial'])
+                    disaster_type = st.selectbox("Disaster Type", options=['Earthquake', 'Volcanic activity', 'Mass movement (dry)', 'Storm', 'Flood', 'Mass movement (wet)', 'Wildfire', 'Extreme temperature', 'Drought', 'Glacial lake outburst', 'Insect infestation', 'Epidemic', 'Animal accident', 'Impact', 'Space weather'])
 
-    if st.button("🔮 Predict 🔮"):
-        preprocessed_input = preprocess_user_input(user_input, st.session_state['X_columns'])
-        model_name = st.selectbox("Select Model for Prediction", options=list(st.session_state['trained_models'].keys()))
-        selected_model = st.session_state['trained_models'][model_name]
-        
-        user_prediction = selected_model.predict(preprocessed_input)
-        st.session_state['user_prediction'] = user_prediction[0]
-        st.session_state['response_dict'] = {
+                submit_button = st.form_submit_button(label='Predict')
+
+                if submit_button:
+                    user_input = {
+                        'Location': location,
+                        'Magnitude': magnitude,
+                        'Total Deaths': total_deaths,
+                        'No. Injured': no_injured,
+                        'No. Affected': no_affected,
+                        'No. Homeless': no_homeless,
+                        'Disaster Group': disaster_group,
+                        'Disaster Subgroup': disaster_subgroup,
+                        'Disaster Type': disaster_type,
+                    }
+
+                    preprocessed_input = preprocess_user_input(user_input, st.session_state['X_columns'])
+                    model_name = st.selectbox("Select Model for Prediction", options=list(st.session_state['trained_models'].keys()))
+                    selected_model = st.session_state['trained_models'][model_name]
+
+                    user_prediction = selected_model.predict(preprocessed_input)
+                    st.session_state['user_prediction'] = user_prediction[0]
+                    st.session_state['response_dict'] = {
             "Earthquake": "1. Evacuate to an open space.\n2. Drop, cover, and hold on during shaking.\n3. Check for injuries and provide first aid.\n4. Be prepared for aftershocks.\n5. Follow local authorities' instructions.",
             "Volcanic activity": "1. Evacuate from the affected area.\n2. Avoid low-lying areas to escape lava flows.\n3. Wear masks to avoid inhaling ash.\n4. Protect property from ash fall.\n5. Follow evacuation orders from local authorities.",
             "Mass movement (dry)": "1. Evacuate the area immediately.\n2. Avoid steep slopes and landslide-prone areas.\n3. Stay informed about local warnings.\n4. Keep emergency supplies ready.\n5. Follow instructions from local authorities.",
@@ -170,8 +190,13 @@ if section == "Disaster Prediction":
             "Impact": "1. Evacuate the area if necessary.\n2. Stay indoors and away from windows.\n3. Follow local authorities' instructions.\n4. Keep emergency supplies ready.\n5. Stay informed about impact risks and updates.",
             "Space weather": "1. Protect electronic devices from electromagnetic pulses.\n2. Follow space weather forecasts.\n3. Be prepared for communication disruptions.\n4. Follow guidelines from space weather agencies.\n5. Stay informed about potential impacts and updates."
         }
-        st.session_state.section = "Model Results"
-        st.experimental_rerun()
+                    
+                    for to_phone_number in to_phone_numbers:
+                        send_notification(f"Predicted Disaster: {user_prediction[0]}, Magnitude: {magnitude}, Total Deaths: {total_deaths}, No. Injured: {no_injured}, No. Affected: {no_affected}, No. Homeless: {no_homeless}, Disaster Group: {disaster_group}, Disaster Subgroup: {disaster_subgroup}", to_phone_number)
+
+                    st.session_state['prediction_location'] = location  # Save the location for Weather Map section
+                    st.session_state.section = "Model Results"
+                    st.experimental_rerun()
 
 # Section 2: Model Results
 elif section == "Model Results":
@@ -201,23 +226,52 @@ elif section == "Model Results":
         st.write("1. National Disaster Management Authority\n2. Local Emergency Services\n3. Red Cross\n4. FEMA (Federal Emergency Management Agency)\n5. Local Government Websites")
         
         notification_message = f"Disaster Prediction: {st.session_state['user_prediction']}\nSuggested Actions: {response_dict.get(st.session_state['user_prediction'], 'Follow local authorities’ instructions and stay safe.')}"
-        for i in to_phone_numbers:
-            send_notification(notification_message, i)
+        for to_phone_number in to_phone_numbers:
+            send_notification(notification_message, to_phone_number)
 
-        # Adding the live cloud map
-        st.write("### Live Cloud Map")
-        map_center = [20.5937, 78.9629]  # Center of India, replace with your preferred location
-        disaster_map = folium.Map(location=map_center, zoom_start=6)
+# Section 3: Weather Map
+elif section == "Weather Map":
+    st.title('🌦️ Weather Map 🌦️')
 
-        # Add some sample markers
-        folium.Marker(
-            location=[20.5937, 78.9629],
-            popup="Sample Location",
-            icon=folium.Icon(color='blue')
-        ).add_to(disaster_map)
+    location = st.session_state.get('prediction_location', 'New York')  # Default to New York if no location available
 
-        # Display the map
-        st_folium(disaster_map, width=700, height=500)
+    if location:
+        weather_data = get_weather_data(location)
+        if 'error' not in weather_data:
+            st.write(f"### Weather data for {location}:")
+            
+            # Extract and display detailed weather information
+            location_name = weather_data['location']['name']
+            country = weather_data['location']['country']
+            temp_c = weather_data['current']['temp_c']
+            temp_f = weather_data['current']['temp_f']
+            condition_text = weather_data['current']['condition']['text']
+            wind_kph = weather_data['current']['wind_kph']
+            wind_mph = weather_data['current']['wind_mph']
+            humidity = weather_data['current']['humidity']
+            pressure_mb = weather_data['current']['pressure_mb']
+            pressure_in = weather_data['current']['pressure_in']
+            vis_km = weather_data['current']['vis_km']
+            vis_miles = weather_data['current']['vis_miles']
+            uv = weather_data['current']['uv']
+            feelslike_c = weather_data['current']['feelslike_c']
+            feelslike_f = weather_data['current']['feelslike_f']
+            
+            st.write(f"**Location:** {location_name}, {country}")
+            st.write(f"**Temperature:** {temp_c}°C ({temp_f}°F)")
+            st.write(f"**Condition:** {condition_text}")
+            st.write(f"**Wind:** {wind_kph} kph ({wind_mph} mph)")
+            st.write(f"**Humidity:** {humidity}%")
+            st.write(f"**Pressure:** {pressure_mb} mb ({pressure_in} in)")
+            st.write(f"**Visibility:** {vis_km} km ({vis_miles} miles)")
+            st.write(f"**UV Index:** {uv}")
+            st.write(f"**Feels Like:** {feelslike_c}°C ({feelslike_f}°F)")
 
-if __name__ == "__main__":
-    st.write("Waiting for user interaction...")
+            weather_map = create_weather_map(location, weather_data)
+            folium_static(weather_map, width=800, height=600)
+        else:
+            st.write("Weather data could not be retrieved. Please try again later.")
+
+# Footer
+st.markdown("---")
+st.write("Developed by Perfect Cube")
